@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"go_compiler/api" // <-- make sure this matches your module name
+	"go_compiler/api"
 )
 
 func CheckExtension(filePath string) {
@@ -20,7 +20,7 @@ func CheckExtension(filePath string) {
 	switch ext {
 	case ".py":
 		fmt.Println("This is a Python file.")
-		api.RunPythonChecker(filePath) // ✅ Send actual file path
+		api.RunPythonChecker(filePath)
 	case ".ipynb":
 		fmt.Println("This is a Jupyter Notebook file.")
 		api.RunPythonChecker(filePath)
