@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 )
 
 func RunPythonChecker(filePath string) {
-	cmd := exec.Command("python3", filePath)
+	startTime := time.Now()
 
+	cmd := exec.Command("python3", filePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -17,4 +19,7 @@ func RunPythonChecker(filePath string) {
 	if err != nil {
 		fmt.Println("Error running Python script:", err)
 	}
+
+	duration := time.Since(startTime)
+	fmt.Printf("\nExecution Time: %v\n", duration)
 }
