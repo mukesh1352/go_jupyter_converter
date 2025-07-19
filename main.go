@@ -23,7 +23,7 @@ func CheckExtension(filePath string) {
 		api.RunPythonChecker(filePath)
 	case ".ipynb":
 		fmt.Println("This is a Jupyter Notebook file.")
-		api.RunPythonChecker(filePath)
+		api.RunJupyterChecker(filePath)
 	default:
 		fmt.Println("Unknown file type.")
 	}
@@ -31,8 +31,7 @@ func CheckExtension(filePath string) {
 
 func main() {
 	directory := "./files"
-	filename := "1.py" 
-
+	filename := "1.ipynb"
 
 	fullpath := filepath.Join(directory, filename)
 
