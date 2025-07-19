@@ -2,14 +2,46 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"log"
+	"os"
+	"path/filepath"
+
+	"go_compiler/api" // <-- make sure this matches your module name
 )
 
-func main(){
-	fmt.Println("Hello World!!")
-	r:=gin.Default()
-	r.GET("/",func(c *gin.Context){
-		c.String(200,"Hello World..")
-	})
- r.Run(":8000");
+func CheckExtension(filePath string) {
+	if len(filePath) == 0 {
+		log.Fatal("Filename is empty")
+	}
+
+	ext := filepath.Ext(filePath)
+	fmt.Println("File extension is:", ext)
+
+	switch ext {
+	case ".py":
+		fmt.Println("This is a Python file.")
+		api.RunPythonChecker(filePath) // ✅ Send actual file path
+	case ".ipynb":
+		fmt.Println("This is a Jupyter Notebook file.")
+		api.RunPythonChecker(filePath)
+	default:
+		fmt.Println("Unknown file type.")
+	}
+}
+
+func main() {
+	directory := "./files"
+	filename := "1.py" // or "1.ipynb"
+
+	fullpath := filepath.Join(directory, filename)
+
+	info, err := os.Stat(fullpath)
+	if os.IsNotExist(err) {
+		log.Fatal("The file does not exist in the specified directory...")
+	}
+	if info.IsDir() {
+		log.Fatal("The specified path is a directory, not a file...")
+	}
+
+	CheckExtension(fullpath)
 }
