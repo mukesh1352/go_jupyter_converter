@@ -33,22 +33,33 @@ func CheckExtension(filePath string) {
 }
 
 func processFile(path string) {
-	info, err := os.Stat(path)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
-		log.Printf("Error checking file %s: %v", path, err)
+		log.Printf("Could not resolve absolute path for %s: %v", path, err)
+		return
+	}
+
+	info, err := os.Stat(absPath)
+	if err != nil {
+		log.Printf("Error checking file %s: %v", absPath, err)
 		return
 	}
 	if info.IsDir() {
-		log.Printf("Expected a file, but got a directory: %s", path)
+		log.Printf("Expected a file, but got a directory: %s", absPath)
 		return
 	}
-	CheckExtension(path)
+	CheckExtension(absPath)
 }
 
 func processDirectory(dir string) {
-	files, err := os.ReadDir(dir)
+	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		log.Fatalf("Failed to read directory %s: %v", dir, err)
+		log.Fatalf("Could not resolve absolute path for directory %s: %v", dir, err)
+	}
+
+	files, err := os.ReadDir(absDir)
+	if err != nil {
+		log.Fatalf("Failed to read directory %s: %v", absDir, err)
 	}
 
 	for _, file := range files {
@@ -56,7 +67,7 @@ func processDirectory(dir string) {
 			continue
 		}
 
-		fullPath := filepath.Join(dir, file.Name())
+		fullPath := filepath.Join(absDir, file.Name())
 		ext := filepath.Ext(file.Name())
 		if ext == ".py" || ext == ".ipynb" {
 			processFile(fullPath)
