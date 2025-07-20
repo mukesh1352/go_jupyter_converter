@@ -1,13 +1,14 @@
-package api
+package parser1
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 )
 
-// Structs for parsing Jupyter notebook JSON
 type Notebook struct {
 	Cells []Cell `json:"cells"`
 }
@@ -17,40 +18,51 @@ type Cell struct {
 	Source   []string `json:"source"`
 }
 
-// RunJupyterChecker reads and parses a Jupyter notebook (.ipynb)
-func RunJupyterChecker(filepath string) {
-	// Read the file content
-	data, err := os.ReadFile(filepath)
+func RunJupyterChecker(filePath string) {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error reading the file:", err)
-		os.Exit(1)
+		log.Fatalf("Error reading the file: %v", err)
 	}
 
-	// Unmarshal the JSON content into the Notebook struct
 	var nb Notebook
 	if err := json.Unmarshal(data, &nb); err != nil {
-		log.Fatalf("Error parsing the JSON file: %v", err)
+		log.Fatalf("Error parsing notebook JSON: %v", err)
 	}
 
-	// Loop through all cells in the notebook
 	for i, cell := range nb.Cells {
-		switch cell.CellType {
-		case "code":
-			fmt.Printf("Code cell %d:\n", i)
-			for _, line := range cell.Source {
-				fmt.Print(line)
-			}
-			fmt.Println("\n--n--")
-
-		case "markdown":
-			fmt.Printf("Markdown cell %d:\n", i)
-			for _, line := range cell.Source {
-				fmt.Print(line)
-			}
-			fmt.Println("\n--n--")
-
-		default:
-			fmt.Printf("Unknown cell type %q in cell %d\n", cell.CellType, i)
+		if cell.CellType != "code" {
+			continue
 		}
+
+		code := ""
+		for _, line := range cell.Source {
+			code += line
+		}
+
+		// Call Python script
+		input := map[string]string{"code": code}
+		jsonData, _ := json.Marshal(input)
+
+		cmd := exec.Command("python3", "executor/run_code.py")
+		cmd.Stdin = bytes.NewBuffer(jsonData)
+
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = os.Stderr
+
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("Execution failed on cell %d: %v", i, err)
+			continue
+		}
+
+		var result map[string]interface{}
+		json.Unmarshal(out.Bytes(), &result)
+
+		fmt.Printf(" Cell %d Output:\n", i)
+		fmt.Println(" Success:", result["success"])
+		fmt.Println(" Stdout:\n", result["stdout"])
+		fmt.Println(" Stderr:\n", result["stderr"])
+		fmt.Println("------")
 	}
 }
