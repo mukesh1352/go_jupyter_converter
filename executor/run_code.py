@@ -1,11 +1,8 @@
-# executor/run_code.py
-
 import sys
 import json
 import io
 import contextlib
 
-# Shared global context to persist variables across cells
 global_context = {}
 
 def execute_cell(code):
@@ -27,13 +24,25 @@ def execute_cell(code):
     return output
 
 def main():
-    # Receive code cell as JSON via stdin
-    input_data = sys.stdin.read()
-    code = json.loads(input_data).get("code", "")
-    
-    result = execute_cell(code)
-    
-    print(json.dumps(result))
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+
+        try:
+            data = json.loads(line)
+            if data.get("code") == "__EXIT__":
+                break
+
+            result = execute_cell(data.get("code", ""))
+            print(json.dumps(result), flush=True)
+        except Exception as e:
+            error_output = {
+                "stdout": "",
+                "stderr": f"Internal error: {str(e)}",
+                "success": False
+            }
+            print(json.dumps(error_output), flush=True)
 
 if __name__ == "__main__":
     main()

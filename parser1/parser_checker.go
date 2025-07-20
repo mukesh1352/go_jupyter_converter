@@ -1,7 +1,7 @@
 package parser1
 
 import (
-	"bytes"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -29,6 +29,27 @@ func RunJupyterChecker(filePath string) {
 		log.Fatalf("Error parsing notebook JSON: %v", err)
 	}
 
+	// Start Python subprocess (persistent)
+	cmd := exec.Command("python3", "executor/run_code.py")
+
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		log.Fatalf("Failed to get stdin: %v", err)
+	}
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalf("Failed to get stdout: %v", err)
+	}
+
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		log.Fatalf("Failed to start Python process: %v", err)
+	}
+
+	reader := bufio.NewScanner(stdoutPipe)
+
 	for i, cell := range nb.Cells {
 		if cell.CellType != "code" {
 			continue
@@ -39,30 +60,35 @@ func RunJupyterChecker(filePath string) {
 			code += line
 		}
 
-		// Call Python script
+		// Send code as JSON to Python
 		input := map[string]string{"code": code}
 		jsonData, _ := json.Marshal(input)
-
-		cmd := exec.Command("python3", "executor/run_code.py")
-		cmd.Stdin = bytes.NewBuffer(jsonData)
-
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = os.Stderr
-
-		err := cmd.Run()
+		_, err := stdinPipe.Write(append(jsonData, '\n')) // newline is crucial
 		if err != nil {
-			log.Printf("Execution failed on cell %d: %v", i, err)
+			log.Printf("Failed to send code for cell %d: %v", i, err)
 			continue
 		}
 
-		var result map[string]interface{}
-		json.Unmarshal(out.Bytes(), &result)
+		// Read JSON output line from Python
+		if reader.Scan() {
+			line := reader.Text()
+			var result map[string]interface{}
+			json.Unmarshal([]byte(line), &result)
 
-		fmt.Printf(" Cell %d Output:\n", i)
-		fmt.Println(" Success:", result["success"])
-		fmt.Println(" Stdout:\n", result["stdout"])
-		fmt.Println(" Stderr:\n", result["stderr"])
-		fmt.Println("------")
+			fmt.Printf(" Cell %d Output:\n", i)
+			fmt.Println(" Success:", result["success"])
+			fmt.Println(" Stdout:\n", result["stdout"])
+			fmt.Println(" Stderr:\n", result["stderr"])
+			fmt.Println("------")
+		} else {
+			log.Printf("No response from Python for cell %d", i)
+		}
 	}
+
+	// Send __EXIT__ to stop the Python process
+	exitInput := map[string]string{"code": "__EXIT__"}
+	exitJSON, _ := json.Marshal(exitInput)
+	stdinPipe.Write(append(exitJSON, '\n'))
+	stdinPipe.Close()
+	cmd.Wait()
 }
