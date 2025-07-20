@@ -11,14 +11,13 @@ import traceback
 import gc
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
-matplotlib.use('Agg')  # Headless backend
+matplotlib.use('Agg')  
 
 global_env = {}
 task_queue = queue.Queue()
 output_queue = queue.Queue()
 
-EXEC_TIMEOUT = 60  # in seconds
-
+EXEC_TIMEOUT = 60  
 
 def actual_execution(code):
     stdout_capture = io.StringIO()
