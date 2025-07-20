@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	"go_compiler/api"
+	parser "go_compiler/parser1" 
 )
+
 
 func CheckExtension(filePath string) {
 	if len(filePath) == 0 {
@@ -23,7 +25,7 @@ func CheckExtension(filePath string) {
 		api.RunPythonChecker(filePath)
 	case ".ipynb":
 		fmt.Println("This is a Jupyter Notebook file.")
-		api.RunJupyterChecker(filePath)
+		parser.RunJupyterChecker(filePath)
 	default:
 		fmt.Println("Unknown file type.")
 	}
@@ -33,15 +35,19 @@ func main() {
 	directory := "./files"
 	filename := "1.ipynb"
 
-	fullpath := filepath.Join(directory, filename)
+	fullPath := filepath.Join(directory, filename)
 
-	info, err := os.Stat(fullpath)
-	if os.IsNotExist(err) {
-		log.Fatal("The file does not exist in the specified directory...")
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Fatalf("The file does not exist at the specified path: %s", fullPath)
+		}
+		log.Fatalf("Error checking file: %v", err)
 	}
+
 	if info.IsDir() {
-		log.Fatal("The specified path is a directory, not a file...")
+		log.Fatalf("The specified path is a directory, not a file: %s", fullPath)
 	}
 
-	CheckExtension(fullpath)
+	CheckExtension(fullPath)
 }
