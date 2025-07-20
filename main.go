@@ -1,23 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"go_compiler/api"
-	parser "go_compiler/parser1" 
+	parser "go_compiler/parser1"
 )
-
 
 func CheckExtension(filePath string) {
 	if len(filePath) == 0 {
-		log.Fatal("Filename is empty")
+		log.Println("Filename is empty")
+		return
 	}
 
 	ext := filepath.Ext(filePath)
-	fmt.Println("File extension is:", ext)
+	fmt.Printf("Processing: %s (type: %s)\n", filePath, ext)
 
 	switch ext {
 	case ".py":
@@ -27,27 +28,58 @@ func CheckExtension(filePath string) {
 		fmt.Println("This is a Jupyter Notebook file.")
 		parser.RunJupyterChecker(filePath)
 	default:
-		fmt.Println("Unknown file type.")
+		fmt.Println("Unknown file type. Skipping:", filePath)
+	}
+}
+
+func processFile(path string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		log.Printf("Error checking file %s: %v", path, err)
+		return
+	}
+	if info.IsDir() {
+		log.Printf("Expected a file, but got a directory: %s", path)
+		return
+	}
+	CheckExtension(path)
+}
+
+func processDirectory(dir string) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		log.Fatalf("Failed to read directory %s: %v", dir, err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		fullPath := filepath.Join(dir, file.Name())
+		ext := filepath.Ext(file.Name())
+		if ext == ".py" || ext == ".ipynb" {
+			processFile(fullPath)
+		}
 	}
 }
 
 func main() {
-	directory := "./files"
-	filename := "2.ipynb"
+	dirFlag := flag.String("dir", "", "Directory containing .py or .ipynb files")
+	fileFlag := flag.String("file", "", "Single .py or .ipynb file to process")
 
-	fullPath := filepath.Join(directory, filename)
+	flag.Parse()
 
-	info, err := os.Stat(fullPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Fatalf("The file does not exist at the specified path: %s", fullPath)
-		}
-		log.Fatalf("Error checking file: %v", err)
+	if *dirFlag == "" && *fileFlag == "" {
+		log.Fatal("Please provide either --dir <directory> or --file <filepath>")
+	}
+	if *dirFlag != "" && *fileFlag != "" {
+		log.Fatal("Please provide only one of --dir or --file, not both.")
 	}
 
-	if info.IsDir() {
-		log.Fatalf("The specified path is a directory, not a file: %s", fullPath)
+	if *fileFlag != "" {
+		processFile(*fileFlag)
+	} else {
+		processDirectory(*dirFlag)
 	}
-
-	CheckExtension(fullPath)
 }
