@@ -63,7 +63,7 @@ func RunJupyterChecker(filePath string) {
 		// Send code as JSON to Python
 		input := map[string]string{"code": code}
 		jsonData, _ := json.Marshal(input)
-		_, err := stdinPipe.Write(append(jsonData, '\n')) // newline is crucial
+		_, err := stdinPipe.Write(append(jsonData, '\n')) 
 		if err != nil {
 			log.Printf("Failed to send code for cell %d: %v", i, err)
 			continue
@@ -85,7 +85,6 @@ func RunJupyterChecker(filePath string) {
 		}
 	}
 
-	// Send __EXIT__ to stop the Python process
 	exitInput := map[string]string{"code": "__EXIT__"}
 	exitJSON, _ := json.Marshal(exitInput)
 	stdinPipe.Write(append(exitJSON, '\n'))

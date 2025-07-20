@@ -33,7 +33,7 @@ func CheckExtension(filePath string) {
 
 func main() {
 	directory := "./files"
-	filename := "2.py"
+	filename := "2.ipynb"
 
 	fullPath := filepath.Join(directory, filename)
 
