@@ -1,193 +1,125 @@
-# Go Compiler - Python & Jupyter Notebook Executor
+# Go Compiler
 
-A Go-based tool for executing Python scripts and Jupyter notebooks with real-time output capture, error handling, and execution timing.
+A Go-based tool for processing and executing Python files and Jupyter notebooks with built-in validation and execution capabilities.
+
+## Overview
+
+Go Compiler is a command-line utility that processes Python files (`.py`) and Jupyter notebooks (`.ipynb`), providing execution capabilities with performance monitoring and validation features. The tool supports both single file processing and batch directory processing.
 
 ## Features
 
-- **Python Script Execution**: Run `.py` files with full stdout/stderr capture and execution timing
-- **Jupyter Notebook Support**: Parse and execute `.ipynb` files cell by cell
-- **Concurrent Execution**: Thread-safe execution with timeout protection
-- **Image Generation**: Automatic matplotlib plot saving and management
-- **Flexible Input**: Process single files or entire directories
-- **Real-time Output**: Live output streaming with JSON-based communication
+- **Multi-format Support**: Process both Python files (`.py`) and Jupyter notebooks (`.ipynb`)
+- **Flexible Processing**: Handle single files or entire directories
+- **Performance Monitoring**: Built-in execution time tracking
+- **Configuration Management**: Configurable settings via config files
+- **Redis Integration**: Built-in Redis support for caching and data management
+- **Colored Output**: Enhanced terminal output with color support
 
 ## Installation
 
 ### Prerequisites
 
 - Go 1.24 or higher
-- Python 3.x with the following packages:
-  - `matplotlib`
-  - `pandas` (for sample files)
-  - `numpy` (for sample files)
-  - `torch` (for sample files)
+- Python 3.x
+- Redis (optional, for caching features)
 
-### Build
+### Build from Source
 
 ```bash
-go build -o go_compiler
+git clone <repository-url>
+cd go_compiler
+go mod download
+go build -o go_compiler cmd/go_compiler/main.go
 ```
 
 ## Usage
 
-### Process a Single File
+### Command Line Options
 
 ```bash
-# Execute a Python script
+# Process a single file
 ./go_compiler --file path/to/script.py
 
-# Execute a Jupyter notebook
-./go_compiler --file path/to/notebook.ipynb
-```
-
-### Process a Directory
-
-```bash
-# Process all .py and .ipynb files in a directory
+# Process all supported files in a directory
 ./go_compiler --dir path/to/directory
+
+# Examples
+./go_compiler --file examples/hello.py
+./go_compiler --dir ./python_scripts
 ```
 
-## Architecture
+### Supported File Types
 
-### Components
+- **`.py`**: Python scripts - executed directly with performance monitoring
+- **`.ipynb`**: Jupyter notebooks - processed with dataset validation
 
-1. **Main Controller** (`main.go`)
-   - Command-line argument parsing
-   - File type detection and routing
-   - Directory traversal
+## Project Structure
 
-2. **Python Executor** (`api/python_checker.go`)
-   - Direct Python script execution
-   - Execution timing measurement
-   - Output streaming
-
-3. **Jupyter Parser** (`parser1/parser_checker.go`)
-   - Notebook JSON parsing
-   - Cell-by-cell execution
-   - Persistent Python subprocess management
-
-4. **Code Runner** (`executor/run_code.py`)
-   - Python execution environment
-   - Thread-safe code execution
-   - Matplotlib integration
-   - Timeout handling (60 seconds per cell)
-
-### Execution Flow
-
-#### Python Files (.py)
 ```
-File Input → Python Executor → Direct python3 execution → Timed output
-```
-
-#### Jupyter Notebooks (.ipynb)
-```
-File Input → JSON Parser → Cell Extraction → Python Subprocess → Cell-by-cell execution → Aggregated output
-```
-
-## Sample Files
-
-The `files/` directory contains example scripts:
-
-- `1.py`: Pandas DataFrame operations with NumPy calculations
-- `2.py`: PyTorch linear regression with matplotlib visualization
-- `1.ipynb` & `2.ipynb`: Notebook versions of the above scripts
-
-## Examples
-
-### Running a Python Script
-
-```bash
-./go_compiler --file files/1.py
-```
-
-Output:
-```
-Processing: /path/to/files/1.py (type: .py)
-This is a Python file.
-Student Scores:
-
-      Name  Math Score  Science Score  Average Score
-0    Alice          85             88           86.5
-1      Bob          90             76           83.0
-2  Charlie          78             93           85.5
-3    David          92             85           88.5
-
-Top Student:
-Name             David
-Math Score          92
-Science Score       85
-Average Score     88.5
-Name: 3, dtype: object
-
-Execution Time: 452.751291ms
-```
-
-### Running a Jupyter Notebook
-
-```bash
-./go_compiler --file files/1.ipynb
-```
-
-Output:
-```
-Processing: /path/to/files/1.ipynb (type: .ipynb)
-This is a Jupyter Notebook file.
-Cell 0 Output:
-Success: true
-Stdout: [cell execution results]
-Stderr: 
-------
+go_compiler/
+├── cmd/
+│   └── go_compiler/          # Main application entry point
+│       └── main.go
+├── internal/
+│   ├── api/                  # API and execution handlers
+│   │   └── python_checker.go
+│   ├── executor/             # Code execution utilities
+│   │   └── run_code.py
+│   ├── parser1/              # File parsing and validation
+│   │   └── parser_checker.go
+│   └── utils/                # Utility functions and configuration
+│       ├── config.go
+│       └── dataset_rewriter.go
+├── go.mod                    # Go module definition
+├── go.sum                    # Go module checksums
+└── README.md                 # This file
 ```
 
 ## Configuration
 
-### Timeout Settings
+The application uses a configuration system that can be customized via the `internal/utils/config.go` module. Configuration options include:
 
-The execution timeout is set to 60 seconds per cell/script. Modify `EXEC_TIMEOUT` in `executor/run_code.py` to adjust:
+- Dataset root paths for Jupyter notebook processing
+- Redis connection settings
+- Output formatting preferences
 
-```python
-EXEC_TIMEOUT = 60  # seconds
-```
+## Dependencies
 
-### Dependencies
-
-Key Go modules (see `go.mod`):
-- Redis client support
-- Color output formatting
-- System utilities
-
-## Error Handling
-
-- **File Not Found**: Graceful error reporting with absolute path resolution
-- **Execution Timeout**: Automatic termination after 60 seconds
-- **Python Errors**: Full traceback capture and display
-- **JSON Parsing**: Robust notebook format validation
+- **Redis**: `github.com/go-redis/redis/v8` and `github.com/redis/go-redis/v9`
+- **Color Output**: `github.com/fatih/color`
+- **System Utilities**: Various Go standard library packages
 
 ## Development
 
-### Project Structure
-```
-.
-├── main.go              # Entry point and CLI handling
-├── api/
-│   └── python_checker.go # Python script executor
-├── parser1/
-│   └── parser_checker.go # Jupyter notebook parser
-├── executor/
-│   └── run_code.py      # Python execution environment
-└── files/               # Sample scripts and notebooks
+### Running Tests
+
+```bash
+go test ./...
 ```
 
-### Adding New File Types
+### Building
 
-1. Add case in `CheckExtension()` function in `main.go`
-2. Create corresponding handler in appropriate package
-3. Update file filtering in `processDirectory()`
+```bash
+# Build for current platform
+go build -o go_compiler cmd/go_compiler/main.go
 
-## Performance
+# Build for specific platforms
+GOOS=linux GOARCH=amd64 go build -o go_compiler-linux cmd/go_compiler/main.go
+GOOS=windows GOARCH=amd64 go build -o go_compiler.exe cmd/go_compiler/main.go
+```
 
-The Go-based approach provides efficient execution with timing measurements and proper resource management for both individual scripts and batch processing of directories.
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is open source. See the repository for license details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For issues, questions, or contributions, please open an issue on the project repository.
