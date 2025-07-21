@@ -12,7 +12,6 @@ Go Interpreter is a command-line utility that interprets and executes Python fil
 - **Flexible Processing**: Handle single files or entire directories
 - **Performance Monitoring**: Built-in execution time tracking
 - **Configuration Management**: Configurable settings via config files
-- **Redis Integration**: Built-in Redis support for caching and data management
 - **Colored Output**: Enhanced terminal output with color support
 
 ## Installation
