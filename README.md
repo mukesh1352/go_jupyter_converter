@@ -1,10 +1,10 @@
-# Go Compiler
+# Go Interpreter
 
-A Go-based tool for processing and executing Python files and Jupyter notebooks with built-in validation and execution capabilities.
+A Go-based interpreter for executing Python files and Jupyter notebooks with built-in validation and performance monitoring capabilities.
 
 ## Overview
 
-Go Compiler is a command-line utility that processes Python files (`.py`) and Jupyter notebooks (`.ipynb`), providing execution capabilities with performance monitoring and validation features. The tool supports both single file processing and batch directory processing.
+Go Interpreter is a command-line utility that interprets and executes Python files (`.py`) and Jupyter notebooks (`.ipynb`), providing real-time execution with performance monitoring and validation features. The interpreter supports both single file execution and batch directory processing.
 
 ## Features
 
@@ -29,7 +29,7 @@ Go Compiler is a command-line utility that processes Python files (`.py`) and Ju
 git clone <repository-url>
 cd go_compiler
 go mod download
-go build -o go_compiler cmd/go_compiler/main.go
+go build -o go_interpreter cmd/go_compiler/main.go
 ```
 
 ## Usage
@@ -37,33 +37,33 @@ go build -o go_compiler cmd/go_compiler/main.go
 ### Command Line Options
 
 ```bash
-# Process a single file
-./go_compiler --file path/to/script.py
+# Interpret and execute a single file
+./go_interpreter --file path/to/script.py
 
-# Process all supported files in a directory
-./go_compiler --dir path/to/directory
+# Interpret all supported files in a directory
+./go_interpreter --dir path/to/directory
 
 # Examples
-./go_compiler --file examples/hello.py
-./go_compiler --dir ./python_scripts
+./go_interpreter --file examples/hello.py
+./go_interpreter --dir ./python_scripts
 ```
 
 ### Supported File Types
 
-- **`.py`**: Python scripts - executed directly with performance monitoring
-- **`.ipynb`**: Jupyter notebooks - processed with dataset validation
+- **`.py`**: Python scripts - interpreted and executed directly with performance monitoring
+- **`.ipynb`**: Jupyter notebooks - interpreted and processed with dataset validation
 
 ## Project Structure
 
 ```
 go_compiler/
 ├── cmd/
-│   └── go_compiler/          # Main application entry point
+│   └── go_compiler/          # Main interpreter entry point
 │       └── main.go
 ├── internal/
-│   ├── api/                  # API and execution handlers
+│   ├── api/                  # API and interpretation handlers
 │   │   └── python_checker.go
-│   ├── executor/             # Code execution utilities
+│   ├── executor/             # Code interpretation and execution utilities
 │   │   └── run_code.py
 │   ├── parser1/              # File parsing and validation
 │   │   └── parser_checker.go
@@ -101,11 +101,11 @@ go test ./...
 
 ```bash
 # Build for current platform
-go build -o go_compiler cmd/go_compiler/main.go
+go build -o go_interpreter cmd/go_compiler/main.go
 
 # Build for specific platforms
-GOOS=linux GOARCH=amd64 go build -o go_compiler-linux cmd/go_compiler/main.go
-GOOS=windows GOARCH=amd64 go build -o go_compiler.exe cmd/go_compiler/main.go
+GOOS=linux GOARCH=amd64 go build -o go_interpreter-linux cmd/go_compiler/main.go
+GOOS=windows GOARCH=amd64 go build -o go_interpreter.exe cmd/go_compiler/main.go
 ```
 
 ## Contributing
