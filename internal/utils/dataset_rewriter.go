@@ -61,6 +61,7 @@ func newRule(regex string) patternRule {
 
 			// If file exists, return it directly
 			if _, err := os.Stat(fullPath); err == nil {
+				log.Printf("📦 Resolving path: original=%s, full=%s", originalPath, fullPath)
 				return fmt.Sprintf("%s%s%s", match[1], fullPath, match[3])
 			}
 
@@ -78,7 +79,7 @@ func newRule(regex string) patternRule {
 
 			if fallback != "" {
 				log.Printf("⚠️  File not found: %s, using fallback: %s", fullPath, fallback)
-				// fallback is absolute; do NOT rejoin datasetRoot
+				// fallback is already absolute; do NOT join with datasetRoot
 				return fmt.Sprintf("%s%s%s", match[1], fallback, match[3])
 			}
 
@@ -87,7 +88,6 @@ func newRule(regex string) patternRule {
 		},
 	}
 }
-
 
 // Rewrite code by applying all rules
 func (rw *PathRewriter) Rewrite(code string) string {

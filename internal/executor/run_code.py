@@ -21,7 +21,6 @@ output_queue = queue.Queue()
 
 EXEC_TIMEOUT = 60
 
-
 def load_config():
     config_path = os.path.expanduser("~/.config/tool/config.json")
     if not os.path.exists(config_path):
@@ -29,21 +28,46 @@ def load_config():
     with open(config_path, "r") as f:
         return json.load(f)
 
+def find_fallback_file(dataset_root, extension):
+    for root, _, files in os.walk(dataset_root):
+        for file in files:
+            if file.endswith(extension):
+                return os.path.join(root, file)
+    return None
+
+def rewrite_path(original_path, dataset_root):
+    if os.path.isabs(original_path):
+        full_path = original_path
+    else:
+        full_path = os.path.join(dataset_root, original_path.lstrip("/"))
+
+    if os.path.exists(full_path):
+        return full_path
+    else:
+        ext = os.path.splitext(original_path)[1]
+        fallback = find_fallback_file(dataset_root, ext)
+        if fallback:
+            print(f"⚠️  File not found: {full_path}, using fallback: {fallback}", file=sys.stderr)
+            return fallback
+        print(f"❌ No fallback found for missing file: {full_path}", file=sys.stderr)
+        return original_path  # Return unchanged if no fallback found
 
 def apply_config_paths(code, dataset_root):
-    # Rewrite common data-loading paths to use dataset_root
     patterns = [
-        r'(pd\.read_csv\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(open\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(np\.load\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(json\.load\(\s*open\(\s*[\'"])([^\'"]+)([\'"])'
+        (r'(pd\.read_csv\(\s*[\'"])([^\'"]+)([\'"])', 'csv'),
+        (r'(open\(\s*[\'"])([^\'"]+)([\'"])', 'txt'),
+        (r'(np\.load\(\s*[\'"])([^\'"]+)([\'"])', 'npy'),
+        (r'(json\.load\(\s*open\(\s*[\'"])([^\'"]+)([\'"])', 'json')
     ]
 
-    for pattern in patterns:
-        code = re.sub(pattern, lambda m: f"{m[1]}{os.path.join(dataset_root, m[2].lstrip('/'))}{m[3]}", code)
-
+    for pattern, _ in patterns:
+        def repl(match):
+            prefix, path, suffix = match.group(1), match.group(2), match.group(3)
+            new_path = rewrite_path(path, dataset_root)
+            return f"{prefix}{new_path}{suffix}"
+        code = re.sub(pattern, repl, code, flags=re.IGNORECASE)
+    
     return code
-
 
 def actual_execution(code):
     stdout_capture = io.StringIO()
@@ -58,11 +82,9 @@ def actual_execution(code):
     try:
         config = load_config()
         dataset_root = config.get("dataset_root", "")
-        output_dir = config.get("output_dir", "")
+        output_dir = config.get("output_dir", "./output")
 
-        # Apply dataset path rewriting
         code = apply_config_paths(code, dataset_root)
-
         os.makedirs(output_dir, exist_ok=True)
 
         with contextlib.redirect_stdout(stdout_capture), contextlib.redirect_stderr(stderr_capture):
@@ -83,7 +105,6 @@ def actual_execution(code):
     result["stdout"] = stdout_capture.getvalue()
     result["stderr"] += stderr_capture.getvalue()
     return result
-
 
 def execute_cell(code):
     result = {
@@ -108,7 +129,6 @@ def execute_cell(code):
 
     return result
 
-
 def worker():
     while True:
         item = task_queue.get()
@@ -117,7 +137,6 @@ def worker():
         code = item.get("code", "")
         result = execute_cell(code)
         output_queue.put(result)
-
 
 def main():
     worker_thread = threading.Thread(target=worker, daemon=True)
@@ -147,7 +166,6 @@ def main():
                 "images": []
             }
             print(json.dumps(error_output), flush=True)
-
 
 if __name__ == "__main__":
     main()
