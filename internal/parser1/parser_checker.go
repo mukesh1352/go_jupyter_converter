@@ -22,7 +22,7 @@ type Cell struct {
 }
 
 // RunJupyterChecker processes a Jupyter notebook and sends code cells to Python
-func RunJupyterChecker(filePath string, datasetRoot string) {
+func RunJupyterChecker(filePath string, cfg *utils.Config) {
 	// Read the Jupyter Notebook file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -35,10 +35,17 @@ func RunJupyterChecker(filePath string, datasetRoot string) {
 	}
 
 	// Initialize path rewriter for dataset normalization
-	rewriter := utils.NewPathRewriter(datasetRoot)
+	rewriter := utils.NewPathRewriter(cfg.DatasetRoot)
 
 	// Start a persistent Python subprocess
 	cmd := exec.Command("python3", "../../internal/executor/run_code.py")
+
+	// Set OUTPUT_DIR from config
+	if cfg.OutputDir != "" {
+		cmd.Env = append(os.Environ(), "OUTPUT_DIR="+cfg.OutputDir)
+	} else {
+		log.Println("⚠️ Warning: Output directory not set in config. Using default current directory.")
+	}
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

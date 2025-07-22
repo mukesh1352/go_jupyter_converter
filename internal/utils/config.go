@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	DatasetRoot string `json:"dataset_root"`
+	OutputDir   string `json:"output_dir"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -30,6 +31,7 @@ func LoadConfig() (*Config, error) {
 
 		defaultCfg := &Config{
 			DatasetRoot: filepath.Join(homeDir, "datasets"),
+			OutputDir:   filepath.Join(homeDir, "output"),
 		}
 
 		data, err := json.MarshalIndent(defaultCfg, "", "  ")
