@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
 	"go_compiler/internal/api"
 	"go_compiler/internal/parser1"
-	"go_compiler/internal/utils" // 👈 Add this import
+	"go_compiler/internal/utils"
 )
 
 func CheckExtension(filePath string, cfg *utils.Config) {
@@ -25,7 +26,7 @@ func CheckExtension(filePath string, cfg *utils.Config) {
 		api.RunPythonChecker(filePath)
 	case ".ipynb":
 		log.Println("Detected Jupyter Notebook file.")
-		parser1.RunJupyterChecker(filePath, cfg.DatasetRoot)
+		parser1.RunJupyterChecker(filePath, cfg) // ✅ Pass full config
 	default:
 		log.Printf("Unsupported file type: %s. Skipping.", ext)
 	}
@@ -99,3 +100,4 @@ func main() {
 		processDirectory(*dirFlag, cfg)
 	}
 }
+	
