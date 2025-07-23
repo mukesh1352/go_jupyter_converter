@@ -31,16 +31,37 @@ def load_config():
 
 
 def apply_config_paths(code, dataset_root):
-    # Rewrite common data-loading paths to use dataset_root
+    def fallback_path(original_path, root_dir):
+        full_path = os.path.join(root_dir, original_path.lstrip('/'))
+
+        if os.path.exists(full_path):
+            return full_path
+
+        ext = os.path.splitext(original_path)[1]
+        for dirpath, _, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith(ext):
+                    fallback = os.path.join(dirpath, filename)
+                    print(f"⚠️  Fallback: {original_path} → {fallback}", file=sys.stderr)
+                    return fallback
+
+        print(f"❌ File not found and no fallback: {original_path}", file=sys.stderr)
+        return None
+
     patterns = [
-        r'(pd\.read_csv\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(open\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(np\.load\(\s*[\'"])([^\'"]+)([\'"])',
-        r'(json\.load\(\s*open\(\s*[\'"])([^\'"]+)([\'"])'
+        (r'(pd\.read_csv\(\s*[\'"])([^\'"]+)([\'"])', 1),
+        (r'(open\(\s*[\'"])([^\'"]+)([\'"])', 1),
+        (r'(np\.load\(\s*[\'"])([^\'"]+)([\'"])', 1),
+        (r'(json\.load\(\s*open\(\s*[\'"])([^\'"]+)([\'"])', 1)
     ]
 
-    for pattern in patterns:
-        code = re.sub(pattern, lambda m: f"{m[1]}{os.path.join(dataset_root, m[2].lstrip('/'))}{m[3]}", code)
+    for pattern, group_index in patterns:
+        def replacer(m):
+            prefix, path, suffix = m.groups()
+            replacement = fallback_path(path, dataset_root)
+            return f"{prefix}{replacement}{suffix}" if replacement else m.group(0)
+
+        code = re.sub(pattern, replacer, code)
 
     return code
 
