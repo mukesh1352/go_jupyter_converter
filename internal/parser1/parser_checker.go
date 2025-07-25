@@ -10,7 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
+	"regexp"
+	"strconv"
 	"go_compiler/internal/utils"
 )
 
@@ -31,9 +32,11 @@ type ExecutionResult struct {
 	Images     []string
 }
 
-// RunJupyterChecker processes a Jupyter notebook and sends code cells to Python
-func RunJupyterChecker(filePath string, cfg *utils.Config) {
-	// Read the Jupyter Notebook file
+func RunJupyterChecker(filePath string, cfg *utils.Config) float64 {
+	fmt.Println("🚀 Starting Jupyter Checker for:", filePath)
+	fmt.Println("🛠️  Using output dir:", cfg.OutputDir)
+	
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("Error reading the file %s: %v", filePath, err)
@@ -56,23 +59,20 @@ func RunJupyterChecker(filePath string, cfg *utils.Config) {
 	notebookName := filepath.Base(filePath)
 	outputName := strings.TrimSuffix(notebookName, filepath.Ext(notebookName)) + "_output.txt"
 	outputPath := filepath.Join(cfg.OutputDir, outputName)
-
+	fmt.Println("🧾 Writing to output file:", outputPath)
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		log.Fatalf("Failed to create output file %s: %v", outputPath, err)
 	}
 	defer outputFile.Close()
 
-	// Write header to output file
 	header := fmt.Sprintf("Execution Log for: %s\nTime: %s\n\n", notebookName, time.Now().Format(time.RFC1123))
 	if _, err := outputFile.WriteString(header); err != nil {
 		log.Printf("⚠️ Warning: Failed to write header to output file: %v", err)
 	}
 
-	// Start a persistent Python subprocess
-	cmd := exec.Command("python3", "../../internal/executor/run_code.py")
+	cmd := exec.Command("C:\\Users\\Albert Nedumudy\\AppData\\Local\\Programs\\Python\\Python311\\python.exe", "C:/Users/Albert Nedumudy/Desktop/Main HQ/Work/Github_Tool_Core/docker-worker/compiler/go_jupyter_converter/internal/executor/run_code.py")
 
-	// Set environment variables
 	cmd.Env = append(os.Environ(),
 		"OUTPUT_DIR="+cfg.OutputDir,
 		"DATASET_ROOT="+cfg.DatasetRoot,
@@ -173,6 +173,26 @@ func RunJupyterChecker(filePath string, cfg *utils.Config) {
 	// Write summary to output file
 	writeSummary(outputFile, results)
 	log.Printf("✅ Execution complete. Results saved to: %s", outputPath)
+	accuracy := extractPrintedAccuracy(results)
+	fmt.Printf("{\"accuracy\": %.2f}\n", accuracy)
+	return accuracy
+}
+
+func extractPrintedAccuracy(results []ExecutionResult) float64 {
+	re := regexp.MustCompile(`(?i)accuracy\s*[:=]\s*([0-9]+(?:\.[0-9]*)?)`)
+	var lastAccuracy float64
+
+	for _, r := range results {
+		matches := re.FindAllStringSubmatch(r.Stdout, -1)
+		for _, match := range matches {
+			if len(match) >= 2 {
+				if val, err := strconv.ParseFloat(match[1], 64); err == nil {
+					lastAccuracy = val // or track max if you want max printed accuracy
+				}
+			}
+		}
+	}
+	return lastAccuracy
 }
 
 func printCellResult(result ExecutionResult) {
@@ -245,6 +265,7 @@ func writeSummary(file *os.File, results []ExecutionResult) {
 	summary += fmt.Sprintf("Failed Executions: %d\n", failureCount)
 	summary += fmt.Sprintf("Images Generated: %d\n", imageCount)
 	summary += fmt.Sprintf("=======================\n")
+	
 
 	if _, err := file.WriteString(summary); err != nil {
 		log.Printf("⚠️ Warning: Failed to write summary to file: %v", err)

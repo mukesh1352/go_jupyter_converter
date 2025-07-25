@@ -11,10 +11,10 @@ import (
 	"go_compiler/internal/utils"
 )
 
-func CheckExtension(filePath string, cfg *utils.Config) {
+func CheckExtension(filePath string, cfg *utils.Config) float64  {
 	if filePath == "" {
 		log.Println("Warning: provided filename is empty.")
-		return
+		return 0
 	}
 
 	ext := filepath.Ext(filePath)
@@ -22,37 +22,37 @@ func CheckExtension(filePath string, cfg *utils.Config) {
 
 	switch ext {
 	case ".py":
-		log.Println("Detected Python file.")
 		api.RunPythonChecker(filePath)
+		return 0 // or -1 if not relevant
 	case ".ipynb":
-		log.Println("Detected Jupyter Notebook file.")
-		parser1.RunJupyterChecker(filePath, cfg) // ✅ Pass full config
+		return parser1.RunJupyterChecker(filePath, cfg)
 	default:
 		log.Printf("Unsupported file type: %s. Skipping.", ext)
+		return 0
 	}
 }
 
-func processFile(path string, cfg *utils.Config) {
+func processFile(path string, cfg *utils.Config) float64 {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		log.Printf("Error resolving absolute path for %s: %v", path, err)
-		return
+		return 0
 	}
 
 	info, err := os.Stat(absPath)
 	if err != nil {
 		log.Printf("Error checking file %s: %v", absPath, err)
-		return
+		return 0
 	}
 	if info.IsDir() {
 		log.Printf("Expected file but got directory: %s", absPath)
-		return
-	}
+		return 0
+	} 
 
-	CheckExtension(absPath, cfg)
+	return CheckExtension(absPath, cfg)
 }
 
-func processDirectory(dir string, cfg *utils.Config) {
+func processDirectory(dir string, cfg *utils.Config) float64 {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		log.Fatalf("Error resolving absolute directory path: %v", err)
@@ -63,6 +63,8 @@ func processDirectory(dir string, cfg *utils.Config) {
 		log.Fatalf("Failed to read directory %s: %v", absDir, err)
 	}
 
+	var accuracy float64
+
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -70,14 +72,17 @@ func processDirectory(dir string, cfg *utils.Config) {
 		fullPath := filepath.Join(absDir, file.Name())
 		switch filepath.Ext(file.Name()) {
 		case ".py", ".ipynb":
-			processFile(fullPath, cfg)
+			accuracy = processFile(fullPath, cfg)
 		default:
 			log.Printf("Skipping unsupported file: %s", fullPath)
 		}
 	}
+	return accuracy
 }
 
 func main() {
+	log.Printf("📘 Received file path")
+
 	dirFlag := flag.String("dir", "", "Directory containing .py or .ipynb files")
 	fileFlag := flag.String("file", "", "Single .py or .ipynb file to process")
 	flag.Parse()
@@ -94,10 +99,15 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	var accuracy float64
 	if *fileFlag != "" {
-		processFile(*fileFlag, cfg)
+		accuracy = processFile(*fileFlag, cfg)
 	} else {
-		processDirectory(*dirFlag, cfg)
+		accuracy = processDirectory(*dirFlag, cfg)
 	}
+
+	log.Printf("{\"accuracy\": %.2f}\n", accuracy)
+
+	os.Exit(0)
 }
 	

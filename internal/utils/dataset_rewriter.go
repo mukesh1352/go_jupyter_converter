@@ -59,19 +59,24 @@ func newRule(regex string) patternRule {
 				fullPath = filepath.Join(datasetRoot, relPath)
 			}
 
-			// If file exists, return it directly
-			if _, err := os.Stat(fullPath); err == nil {
-				log.Printf("📦 Resolving path: original=%s, full=%s", originalPath, fullPath)
-				return fmt.Sprintf("%s%s%s", match[1], fullPath, match[3])
+			// Escape for Python (forward slashes recommended)
+			escapeForPython := func(path string) string {
+				return filepath.ToSlash(path) // avoids unicode escape errors
 			}
 
-			// Otherwise, fallback to another file with the same extension
+			// If file exists
+			if _, err := os.Stat(fullPath); err == nil {
+				log.Printf("📦 Resolving path: original=%s, full=%s", originalPath, fullPath)
+				return fmt.Sprintf("%s%s%s", match[1], escapeForPython(fullPath), match[3])
+			}
+
+			// Fallback search by extension
 			ext := filepath.Ext(originalPath)
 			var fallback string
 
 			_ = filepath.WalkDir(datasetRoot, func(path string, d os.DirEntry, err error) error {
 				if filepath.Ext(path) == ext && !d.IsDir() {
-					fallback = path // already absolute
+					fallback = path
 					return filepath.SkipDir
 				}
 				return nil
@@ -79,12 +84,11 @@ func newRule(regex string) patternRule {
 
 			if fallback != "" {
 				log.Printf("⚠️  File not found: %s, using fallback: %s", fullPath, fallback)
-				// fallback is already absolute; do NOT join with datasetRoot
-				return fmt.Sprintf("%s%s%s", match[1], fallback, match[3])
+				return fmt.Sprintf("%s%s%s", match[1], escapeForPython(fallback), match[3])
 			}
 
 			log.Printf("❌ No fallback found for missing file: %s", fullPath)
-			return match[0] // original, unmodified
+			return match[0] // return original
 		},
 	}
 }

@@ -10,7 +10,7 @@ import (
 func RunPythonChecker(filePath string) {
 	startTime := time.Now()
 
-	cmd := exec.Command("python3", filePath)
+	cmd := exec.Command("C:\\Users\\Albert Nedumudy\\AppData\\Local\\Programs\\Python\\Python311\\python.exe", filePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
